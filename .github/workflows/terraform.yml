@@ -3,6 +3,10 @@ name: Terraform Test
 on:
   push:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   terraform:
     runs-on: ubuntu-latest
@@ -16,6 +20,14 @@ jobs:
         with:
           terraform_version: 1.9.8
 
+      - name: Get GitHub OIDC Token
+        id: oidc
+        run: |
+          TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=conjur" | jq -r '.value')
+          echo "::add-mask::$TOKEN"
+          echo "jwt=$TOKEN" >> "$GITHUB_OUTPUT"
+
       - name: Terraform Init
         run: terraform init
 
@@ -24,3 +36,5 @@ jobs:
 
       - name: Terraform Plan
         run: terraform plan
+        env:
+          TF_VAR_conjur_jwt_token: ${{ steps.oidc.outputs.jwt }}

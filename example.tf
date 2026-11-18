@@ -2,45 +2,34 @@ terraform {
   required_version = ">= 1.5.0"
 
   required_providers {
-    null = {
-      source  = "hashicorp/null"
-      version = "~> 3.2"
+    conjur = {
+      source  = "cyberark/conjur"
+      version = "~> 0.6"
     }
   }
 }
 
-variable "environment" {
+variable "conjur_jwt_token" {
   type        = string
-  default     = "dev"
-  description = "Deployment environment name"
+  sensitive   = true
+  description = "GitHub Actions OIDC JWT token for Conjur authentication"
+}
 
-  validation {
-    condition     = contains(["dev", "staging", "prod"], var.environment)
-    error_message = "Environment must be dev, staging, or prod."
+provider "conjur" {
+  appliance_url = "https://sme-andrew.secretsmgr.cyberark.cloud/api"
+  account       = "conjur"
+
+  authn_jwt {
+    service_id = "github"
+    token      = var.conjur_jwt_token
   }
 }
 
-locals {
-  tags = {
-    environment = var.environment
-    managed_by  = "terraform"
-  }
+data "conjur_secret" "api_username" {
+  name = "data/vault/OSC_APP0001/custom_rest_api/username"
 }
 
-resource "null_resource" "example" {
-  triggers = {
-    environment = var.environment
-  }
-
-  provisioner "local-exec" {
-    command = "echo 'Running in ${var.environment} environment'"
-  }
-}
-
-output "environment" {
-  value = var.environment
-}
-
-output "tags" {
-  value = local.tags
+output "secret_retrieved" {
+  value       = true
+  description = "Confirms the secret was successfully retrieved"
 }
