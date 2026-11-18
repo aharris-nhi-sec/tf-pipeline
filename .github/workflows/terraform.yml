@@ -11,10 +11,6 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
 
-    env:
-      CONJUR_APPLIANCE_URL: https://sme-andrew.secretsmgr.cyberark.cloud/api
-      CONJUR_ACCOUNT: conjur
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,24 +20,16 @@ jobs:
         with:
           terraform_version: 1.9.8
 
-      - name: Authenticate to Conjur via JWT
-        id: conjur
+      - name: Get GitHub OIDC Token
+        id: oidc
         run: |
-          JWT=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+          TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=conjur" | jq -r '.value')
-
-          CONJUR_TOKEN=$(curl -s --request POST \
-            "${CONJUR_APPLIANCE_URL}/authn-jwt/github/${CONJUR_ACCOUNT}/authenticate" \
-            --header "Content-Type: application/x-www-form-urlencoded" \
-            --data-urlencode "jwt=${JWT}")
-
-          echo "::add-mask::$CONJUR_TOKEN"
-          echo "token=$CONJUR_TOKEN" >> "$GITHUB_OUTPUT"
+          echo "::add-mask::$TOKEN"
+          echo "jwt=$TOKEN" >> "$GITHUB_OUTPUT"
 
       - name: Terraform Init
         run: terraform init
-        env:
-          CONJUR_AUTHN_TOKEN: ${{ steps.conjur.outputs.token }}
 
       - name: Terraform Validate
         run: terraform validate
@@ -49,4 +37,4 @@ jobs:
       - name: Terraform Plan
         run: terraform plan
         env:
-          CONJUR_AUTHN_TOKEN: ${{ steps.conjur.outputs.token }}
+          TF_VAR_github_jwt: ${{ steps.oidc.outputs.jwt }}
