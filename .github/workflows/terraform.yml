@@ -11,6 +11,11 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
 
+    env:
+      CONJUR_APPLIANCE_URL: https://sme-andrew.secretsmgr.cyberark.cloud/api
+      CONJUR_ACCOUNT: conjur
+      CONJUR_AUTHN_JWT_SERVICE_ID: github
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,6 +35,8 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
+        env:
+          CONJUR_AUTHN_JWT_TOKEN: ${{ steps.oidc.outputs.jwt }}
 
       - name: Terraform Validate
         run: terraform validate
@@ -37,4 +44,4 @@ jobs:
       - name: Terraform Plan
         run: terraform plan
         env:
-          TF_VAR_conjur_jwt_token: ${{ steps.oidc.outputs.jwt }}
+          CONJUR_AUTHN_JWT_TOKEN: ${{ steps.oidc.outputs.jwt }}
