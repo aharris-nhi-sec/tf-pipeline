@@ -33,7 +33,6 @@ jobs:
           CONJUR_TOKEN=$(curl -s --request POST \
             "${CONJUR_APPLIANCE_URL}/authn-jwt/github/${CONJUR_ACCOUNT}/authenticate" \
             --header "Content-Type: application/x-www-form-urlencoded" \
-            --header "Accept-Encoding: base64" \
             --data-urlencode "jwt=${JWT}")
 
           echo "::add-mask::$CONJUR_TOKEN"
